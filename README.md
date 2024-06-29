@@ -23,5 +23,7 @@ Dodatno:
 1. LSM kompakcije - kompakcije služe da se više SSTable spoji u jednu veću sa ažuriranim podacima (u tom trenutku bi se odradilo fizičko brisanje).
 2. Konfigurisanje - postojala bi eksterna konfiguracija (JSON, YAML ili slično) za parametre struktura i algoritama (broj elemenata u kešu, broj nivoa u LSM stablu, veličina bafera itd.)
 
+GUI:  
+Aplikacija je zamišljena kao bibliotečka aplikacija. U svrhu testiranja može posedovati CLI.
 
 Slične implementacije Key-Value baza su LevelDB, RocksDB, Cassandra.
