@@ -1,17 +1,17 @@
 use std::collections::{HashMap, VecDeque};
 
 pub struct LRUCache {
-    capacity: usize,
+    capacity: u32,
     lookup: HashMap<String, Vec<u8>>,
     order: VecDeque<String>,
 }
 
 impl LRUCache {
-    pub fn new(capacity: usize) -> Self {
+    pub fn new(capacity: u32) -> Self {
         LRUCache {
             capacity,
             lookup: HashMap::new(),
-            order: VecDeque::with_capacity(capacity),
+            order: VecDeque::with_capacity(capacity as usize),
         }
     }
 
@@ -26,7 +26,7 @@ impl LRUCache {
         if self.lookup.contains_key(key) {
             self.update_order(key.to_string());
         } else {
-            if self.lookup.len() == self.capacity {
+            if self.lookup.len() == self.capacity as usize {
                 if let Some(lru_key) = self.order.pop_back() {
                     self.lookup.remove(&lru_key);
                 }
@@ -48,8 +48,3 @@ impl LRUCache {
         self.order.push_front(key);
     }
 }
-
-/*
-    VecDeque
-    front je levo (najskorije dodati), back je desno (najranije dodati)
-*/
