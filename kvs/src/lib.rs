@@ -12,7 +12,15 @@ pub(crate) mod structures {
         #[cfg(test)]
         mod test;
     }
+
+    pub(crate) mod token_bucket {
+        pub(crate) mod token_bucket;
+
+        #[cfg(test)]
+        mod test;
+    }
 }
 
 pub use structures::bloom_filter::bloom_filter::BloomFilter;
 pub use structures::lru_cache::lru_cache::LRUCache;
+pub use structures::token_bucket::token_bucket::TokenBucket;
