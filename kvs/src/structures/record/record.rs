@@ -1,7 +1,8 @@
 use crc;
+use std::cmp::PartialEq;
 use std::{u64, u8};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Record {
     pub key_size: u64,
     pub value_size: u64,
