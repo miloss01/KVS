@@ -62,15 +62,19 @@ impl BloomFilter {
             .create(true)
             .open(file_path)?;
 
-        file.write_all(&(self.expected_elements as u32).to_le_bytes())?;
-        file.write_all(&(self.false_positive_rate as f64).to_le_bytes())?;
-        file.write_all(&(self.base_seed as u32).to_le_bytes())?;
-        file.write_all(&(self.m as u32).to_le_bytes())?;
-        file.write_all(&(self.k as u32).to_le_bytes())?;
+        let mut buffer: Vec<u8> = Vec::new();
+
+        buffer.extend(&self.expected_elements.to_le_bytes());
+        buffer.extend(&self.false_positive_rate.to_le_bytes());
+        buffer.extend(&self.base_seed.to_le_bytes());
+        buffer.extend(&self.m.to_le_bytes());
+        buffer.extend(&self.k.to_le_bytes());
 
         for bit in &self.bits {
-            file.write_all(&[*bit as u8])?;
+            buffer.push(*bit as u8);
         }
+
+        file.write_all(&buffer)?;
 
         Ok(())
     }

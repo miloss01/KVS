@@ -37,6 +37,15 @@ impl LRUCache {
         self.lookup.insert(key.to_string(), value);
     }
 
+    pub fn remove(&mut self, key: &str) {
+        if self.lookup.contains_key(key) {
+            self.lookup.remove(key);
+            if let Some(pos) = self.order.iter().position(|x: &String| *x == key) {
+                self.order.remove(pos);
+            }
+        }
+    }
+
     pub fn get_order(&mut self) -> Vec<&str> {
         self.order.iter().rev().map(|s| s.as_str()).collect()
     }
