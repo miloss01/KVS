@@ -94,4 +94,15 @@ fn test_remove() {
     assert_eq!(lru_cache.get("key1"), None);
     assert_eq!(lru_cache.get("key2"), None);
     assert_eq!(lru_cache.get("key3"), Some(&vec![3]));
+
+    lru_cache.put("key1", vec![1]);
+    lru_cache.put("key2", vec![2]);
+
+    lru_cache.remove("key1");
+
+    assert_eq!(lru_cache.get("key1"), None);
+    assert_eq!(lru_cache.get("key2"), Some(&vec![2]));
+    assert_eq!(lru_cache.get("key3"), Some(&vec![3]));
+
+    assert_eq!(lru_cache.get_order(), vec!["key2", "key3"]);
 }
