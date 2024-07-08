@@ -79,3 +79,30 @@ fn test_access_order() {
     lru_cache.get("key2");
     assert_eq!(lru_cache.get_order(), vec!["key1", "key3", "key2"]);
 }
+
+#[test]
+fn test_remove() {
+    let mut lru_cache: LRUCache = LRUCache::new(3);
+
+    lru_cache.put("key1", vec![1]);
+    lru_cache.put("key2", vec![2]);
+    lru_cache.put("key3", vec![3]);
+
+    lru_cache.remove("key1");
+    lru_cache.remove("key2");
+
+    assert_eq!(lru_cache.get("key1"), None);
+    assert_eq!(lru_cache.get("key2"), None);
+    assert_eq!(lru_cache.get("key3"), Some(&vec![3]));
+
+    lru_cache.put("key1", vec![1]);
+    lru_cache.put("key2", vec![2]);
+
+    lru_cache.remove("key1");
+
+    assert_eq!(lru_cache.get("key1"), None);
+    assert_eq!(lru_cache.get("key2"), Some(&vec![2]));
+    assert_eq!(lru_cache.get("key3"), Some(&vec![3]));
+
+    assert_eq!(lru_cache.get_order(), vec!["key2", "key3"]);
+}
