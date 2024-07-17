@@ -33,6 +33,13 @@ pub(crate) mod structures {
         #[cfg(test)]
         mod test;
     }
+
+    pub(crate) mod merkle_tree {
+        pub(crate) mod merkle_tree;
+
+        #[cfg(test)]
+        mod test;
+    }
 }
 
 pub(crate) mod config {
@@ -44,6 +51,7 @@ pub(crate) mod config {
 
 pub use structures::bloom_filter::bloom_filter::BloomFilter;
 pub use structures::lru_cache::lru_cache::LRUCache;
+pub use structures::merkle_tree::merkle_tree::{MerkleTree, PathItem};
 pub use structures::record::record::Record;
 pub use structures::token_bucket::token_bucket::TokenBucket;
 pub use structures::wal::wal::Wal;
