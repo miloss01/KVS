@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::cmp::PartialEq;
 use std::fs::File;
 use std::io::{Read, Write};
 
@@ -9,9 +10,9 @@ pub enum PathItem {
     RIGHT(Vec<u8>),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct MerkleTree {
-    pub nodes: Vec<Vec<Vec<u8>>>,
+    nodes: Vec<Vec<Vec<u8>>>,
     pub leaves_count: u64,
 }
 
@@ -87,7 +88,7 @@ impl MerkleTree {
         path
     }
 
-    pub fn get_root_from_proof(&self, proof: Vec<PathItem>) -> Vec<u8> {
+    pub fn get_root_from_proof(proof: Vec<PathItem>) -> Vec<u8> {
         let mut curr: Vec<u8> = Vec::new();
 
         for path_item in &proof {

@@ -80,7 +80,7 @@ fn test_merkle_tree_proof() {
 
         for el in 1..num_of_elements {
             let proof: Vec<PathItem> = merkle_tree.get_proof(el.to_string().into_bytes());
-            let proof_root: Vec<u8> = merkle_tree.get_root_from_proof(proof);
+            let proof_root: Vec<u8> = MerkleTree::get_root_from_proof(proof);
             assert_eq!(merkle_tree.root(), proof_root);
         }
     }
@@ -94,6 +94,5 @@ fn test_write_and_load_from_file() {
     merkle_tree.to_file("test_data/merkle.txt");
     let loaded: MerkleTree = MerkleTree::from_file("test_data/merkle.txt");
 
-    assert_eq!(merkle_tree.nodes, loaded.nodes);
-    assert_eq!(merkle_tree.leaves_count, loaded.leaves_count);
+    assert_eq!(merkle_tree, loaded);
 }
