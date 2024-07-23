@@ -1,12 +1,13 @@
 use crc;
 use std::cmp::PartialEq;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{u64, u8};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Record {
     pub key_size: u64,
     pub value_size: u64,
-    pub key: String,
+    pub key: Vec<u8>,
     pub value: Vec<u8>,
     pub timestamp: u64,
     pub tombstone: bool,
@@ -14,9 +15,13 @@ pub struct Record {
 }
 
 impl Record {
-    pub fn new(key: String, value: Vec<u8>, timestamp: u64, tombstone: bool) -> Self {
+    pub fn new(key: Vec<u8>, value: Vec<u8>, tombstone: bool) -> Self {
         let x25: crc::Crc<u64> = crc::Crc::<u64>::new(&crc::CRC_64_ECMA_182);
         let crc: u64 = x25.checksum(&value);
+        let timestamp: u64 = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as u64;
 
         Record {
             key_size: key.len() as u64,
@@ -38,7 +43,7 @@ impl Record {
         buffer.extend(self.key_size.to_le_bytes());
         buffer.extend(self.value_size.to_le_bytes());
 
-        buffer.extend(self.key.as_bytes());
+        buffer.extend(&self.key);
         buffer.extend(&self.value);
 
         buffer
@@ -56,9 +61,7 @@ impl Record {
             tombstone: u8::from_le_bytes(buffer[16..17].try_into().unwrap()) != 0,
             key_size,
             value_size,
-            key: std::str::from_utf8(&buffer[33..33 + key_size as usize])
-                .unwrap()
-                .to_string(),
+            key: buffer[33..33 + key_size as usize].to_vec(),
             value: buffer[33 + key_size as usize..33 + key_size as usize + value_size as usize]
                 .to_vec(),
         }

@@ -40,6 +40,13 @@ pub(crate) mod structures {
         #[cfg(test)]
         mod test;
     }
+
+    pub(crate) mod skip_list {
+        pub(crate) mod skip_list;
+
+        #[cfg(test)]
+        mod test;
+    }
 }
 
 pub(crate) mod config {
@@ -53,6 +60,7 @@ pub use structures::bloom_filter::bloom_filter::BloomFilter;
 pub use structures::lru_cache::lru_cache::LRUCache;
 pub use structures::merkle_tree::merkle_tree::{MerkleTree, PathItem};
 pub use structures::record::record::Record;
+pub use structures::skip_list::skip_list::SkipList;
 pub use structures::token_bucket::token_bucket::TokenBucket;
 pub use structures::wal::wal::Wal;
 

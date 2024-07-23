@@ -11,6 +11,6 @@ fn main() {
 
     // lru_cache.put("key3".to_string(), vec![7, 8, 9]);
 
-    println!("{:?}", lru_cache.get("key2")); // None (key2 should be evicted)
-    println!("{:?}", lru_cache.get("key3")); // Some([7, 8, 9])
+    // println!("{:?}", lru_cache.get("key2")); // None (key2 should be evicted)
+    // println!("{:?}", lru_cache.get("key3")); // Some([7, 8, 9])
 }

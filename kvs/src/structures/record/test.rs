@@ -1,15 +1,8 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::Record;
 
 #[test]
 fn test_ser_deser() {
-    let timestamp: u64 = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as u64;
-
-    let record: Record = Record::new("key1".to_string(), vec![1, 2, 3], timestamp, false);
+    let record: Record = Record::new("key1".to_string().into_bytes(), vec![1, 2, 3], false);
 
     let serialized: Vec<u8> = record.serialize();
     let deserialized: Record = Record::deserialize(&serialized);
