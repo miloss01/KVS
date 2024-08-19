@@ -2,8 +2,8 @@ use std::collections::{HashMap, VecDeque};
 
 pub struct LRUCache {
     capacity: u32,
-    lookup: HashMap<String, Vec<u8>>,
-    order: VecDeque<String>,
+    lookup: HashMap<Vec<u8>, Vec<u8>>,
+    order: VecDeque<Vec<u8>>,
 }
 
 impl LRUCache {
@@ -15,45 +15,49 @@ impl LRUCache {
         }
     }
 
-    pub fn get(&mut self, key: &str) -> Option<&Vec<u8>> {
-        if self.lookup.contains_key(key) {
-            self.update_order(key.to_string());
+    pub fn get(&mut self, key: Vec<u8>) -> Option<&Vec<u8>> {
+        if self.lookup.contains_key(&key) {
+            self.update_order(&key);
         }
-        self.lookup.get(key)
+        self.lookup.get(&key)
     }
 
-    pub fn put(&mut self, key: &str, value: Vec<u8>) {
-        if self.lookup.contains_key(key) {
-            self.update_order(key.to_string());
+    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) {
+        if self.lookup.contains_key(&key) {
+            self.update_order(&key);
         } else {
             if self.lookup.len() == self.capacity as usize {
                 if let Some(lru_key) = self.order.pop_back() {
                     self.lookup.remove(&lru_key);
                 }
             }
-            self.order.push_front(key.to_string());
+            self.order.push_front(key.clone());
         }
 
-        self.lookup.insert(key.to_string(), value);
+        self.lookup.insert(key, value);
     }
 
-    pub fn remove(&mut self, key: &str) {
-        if self.lookup.contains_key(key) {
-            self.lookup.remove(key);
-            if let Some(pos) = self.order.iter().position(|x: &String| *x == key) {
+    pub fn remove(&mut self, key: Vec<u8>) {
+        if self.lookup.contains_key(&key) {
+            self.lookup.remove(&key);
+            if let Some(pos) = self.order.iter().position(|x: &Vec<u8>| *x == key) {
                 self.order.remove(pos);
             }
         }
     }
 
-    pub fn get_order(&mut self) -> Vec<&str> {
-        self.order.iter().rev().map(|s| s.as_str()).collect()
+    pub fn get_order(&mut self) -> Vec<Vec<u8>> {
+        self.order
+            .iter()
+            .rev()
+            .map(|s: &Vec<u8>| s.clone())
+            .collect()
     }
 
-    fn update_order(&mut self, key: String) {
-        if let Some(pos) = self.order.iter().position(|x: &String| *x == key) {
+    fn update_order(&mut self, key: &Vec<u8>) {
+        if let Some(pos) = self.order.iter().position(|x: &Vec<u8>| x == key) {
             self.order.remove(pos);
         }
-        self.order.push_front(key);
+        self.order.push_front(key.to_vec());
     }
 }

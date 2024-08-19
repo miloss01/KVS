@@ -1,22 +1,16 @@
 use crate::{Record, Wal};
 use std::fs;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
 fn test_add_records() {
     let mut wal: Wal = Wal::new("test_data/wal1", 2, 2);
 
-    let timestamp: u64 = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as u64;
-
-    let rec1: Record = Record::new("key1".to_string(), vec![1, 2, 3], timestamp, false);
-    let rec2: Record = Record::new("key2".to_string(), vec![1, 2, 3], timestamp, false);
-    let rec3: Record = Record::new("key3".to_string(), vec![1, 2, 3], timestamp, false);
-    let rec4: Record = Record::new("key4".to_string(), vec![1, 2, 3], timestamp, false);
-    let rec5: Record = Record::new("key5".to_string(), vec![1, 2, 3], timestamp, false);
+    let rec1: Record = Record::new("key1".to_string().into_bytes(), vec![1, 2, 3], false);
+    let rec2: Record = Record::new("key2".to_string().into_bytes(), vec![1, 2, 3], false);
+    let rec3: Record = Record::new("key3".to_string().into_bytes(), vec![1, 2, 3], false);
+    let rec4: Record = Record::new("key4".to_string().into_bytes(), vec![1, 2, 3], false);
+    let rec5: Record = Record::new("key5".to_string().into_bytes(), vec![1, 2, 3], false);
 
     wal.add_record(&rec1);
     wal.add_record(&rec2);

@@ -18,8 +18,6 @@ impl Wal {
         let mut current_segment: u64 = Self::find_latest_segment(path);
         let current_records: Vec<Record>;
 
-        println!("{current_segment}");
-
         if current_segment == 0 {
             current_segment = 1;
             current_records = Vec::new();
