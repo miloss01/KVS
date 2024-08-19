@@ -1,6 +1,6 @@
 use crate::Record;
 use rand::Rng;
-use std::{borrow::BorrowMut, cmp::Ordering};
+use std::cmp::Ordering;
 
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -18,9 +18,8 @@ impl Node {
 }
 
 pub struct SkipList {
-    pub head: Box<Node>,
+    head: Box<Node>,
     max_level: usize,
-    height: usize,
     probability: f64,
 }
 
@@ -30,7 +29,6 @@ impl SkipList {
         SkipList {
             head: Box::new(Node::new(head_record, max_level)),
             max_level,
-            height: 0,
             probability,
         }
     }
@@ -45,12 +43,12 @@ impl SkipList {
     }
 
     pub fn insert(&mut self, record: &Record) {
-        let new_level = self.random_level();
-        let mut new_node = Node::new(record.clone(), self.max_level);
+        let new_level: usize = self.random_level();
+        let mut new_node: Node = Node::new(record.clone(), self.max_level);
 
         for level in 0..self.max_level {
-            let mut current_node = self.head.as_mut();
-            let mut updated = false;
+            let mut current_node: &mut Node = self.head.as_mut();
+            let mut updated: bool = false;
 
             while let Some(next) = current_node.forward[level].as_deref_mut() {
                 match next.record.key.cmp(&record.key) {
@@ -85,12 +83,11 @@ impl SkipList {
 
     pub fn search(&self, key: Vec<u8>) -> Option<&Record> {
         for level in (0..self.max_level).rev() {
-            let mut node = &self.head;
+            let mut node: &Box<Node> = &self.head;
             while let Some(ref next) = node.forward[level] {
                 match next.record.key.cmp(&key) {
                     Ordering::Less => node = next,
                     Ordering::Equal => {
-                        println!("na levelu {:?}", level);
                         return Some(&next.record);
                     }
                     Ordering::Greater => break,
@@ -101,8 +98,8 @@ impl SkipList {
     }
 
     pub fn get_all_records(&self) -> Vec<&Record> {
-        let mut records = Vec::new();
-        let mut node = &self.head;
+        let mut records: Vec<&Record> = Vec::new();
+        let mut node: &Box<Node> = &self.head;
         while let Some(ref next) = node.forward[0] {
             records.push(&next.record);
             node = next;
@@ -113,7 +110,7 @@ impl SkipList {
     pub fn print(&self) {
         for level in 0..self.max_level {
             print!("Level {}: ", level);
-            let mut node = &self.head;
+            let mut node: &Box<Node> = &self.head;
             while let Some(ref next) = node.forward[level] {
                 print!(
                     "({:?}, {:?}, {}), ",
