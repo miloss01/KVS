@@ -1,4 +1,4 @@
-use crate::{structures::skip_list, Record, SkipList};
+use crate::{Record, SkipList};
 
 #[test]
 fn test_search() {
