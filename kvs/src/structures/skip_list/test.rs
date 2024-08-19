@@ -1,4 +1,4 @@
-use crate::{Record, SkipList};
+use crate::{structures::skip_list, Record, SkipList};
 
 #[test]
 fn test_search() {
@@ -15,13 +15,15 @@ fn test_search() {
         let mut skip_list: SkipList = SkipList::new(10, 0.5);
 
         for record in &records {
-            skip_list.insert(record);
+            skip_list.insert(record.clone());
         }
 
-        for i in 1..10 {
+        for i in 0..10 {
             let record: &Record = skip_list.search(records[i].key.clone()).unwrap();
             assert_eq!(record.key, records[i].key);
         }
+
+        assert!(skip_list.search(vec![15 as u8]).is_none());
     }
 }
 
@@ -39,7 +41,7 @@ fn test_get_all_records() {
     let mut skip_list: SkipList = SkipList::new(10, 0.5);
 
     for record in &records {
-        skip_list.insert(record);
+        skip_list.insert(record.clone());
     }
 
     let got_records: Vec<&Record> = skip_list.get_all_records();
@@ -62,11 +64,11 @@ fn test_update() {
         let mut skip_list: SkipList = SkipList::new(10, 0.5);
 
         for record in &records {
-            skip_list.insert(record);
+            skip_list.insert(record.clone());
         }
 
-        for i in 1..10 {
-            let record = skip_list.search(records[i].key.clone()).unwrap();
+        for i in 0..10 {
+            let record: &Record = skip_list.search(records[i].key.clone()).unwrap();
             assert_eq!(record.key, records[i].key);
             assert_eq!(record.tombstone, records[i].tombstone);
         }
@@ -75,11 +77,11 @@ fn test_update() {
         records[5].tombstone = true;
         records[8].tombstone = true;
 
-        skip_list.insert(&records[2]);
-        skip_list.insert(&records[5]);
-        skip_list.insert(&records[8]);
+        skip_list.insert(records[2].clone());
+        skip_list.insert(records[5].clone());
+        skip_list.insert(records[8].clone());
 
-        for i in 1..10 {
+        for i in 0..10 {
             let record: &Record = skip_list.search(records[i].key.clone()).unwrap();
             assert_eq!(record.key, records[i].key);
             assert_eq!(record.tombstone, records[i].tombstone);
@@ -88,5 +90,46 @@ fn test_update() {
         assert!(skip_list.search(vec![3]).unwrap().tombstone);
         assert!(skip_list.search(vec![6]).unwrap().tombstone);
         assert!(skip_list.search(vec![9]).unwrap().tombstone);
+    }
+}
+
+#[test]
+fn test_reset() {
+    let mut records: Vec<Record> = Vec::new();
+
+    for i in 1..=10 {
+        let key: Vec<u8> = vec![i as u8];
+        let value: Vec<u8> = vec![i as u8 * 11];
+        let record: Record = Record::new(key, value, false);
+        records.push(record);
+    }
+
+    let mut skip_list: SkipList = SkipList::new(10, 0.5);
+
+    for record in &records {
+        skip_list.insert(record.clone());
+    }
+
+    for i in 0..10 {
+        let record: &Record = skip_list.search(records[i].key.clone()).unwrap();
+        assert_eq!(record.key, records[i].key);
+        assert_eq!(record.tombstone, records[i].tombstone);
+    }
+
+    skip_list.reset();
+
+    for i in 0..10 {
+        let record: Option<&Record> = skip_list.search(records[i].key.clone());
+        assert!(record.is_none());
+    }
+
+    for record in &records {
+        skip_list.insert(record.clone());
+    }
+
+    for i in 0..10 {
+        let record: &Record = skip_list.search(records[i].key.clone()).unwrap();
+        assert_eq!(record.key, records[i].key);
+        assert_eq!(record.tombstone, records[i].tombstone);
     }
 }

@@ -42,7 +42,7 @@ impl SkipList {
         lvl
     }
 
-    pub fn insert(&mut self, record: &Record) {
+    pub fn insert(&mut self, record: Record) {
         let new_level: usize = self.random_level();
         let mut new_node: Node = Node::new(record.clone(), self.max_level);
 
@@ -105,6 +105,13 @@ impl SkipList {
             node = next;
         }
         records
+    }
+
+    pub fn reset(&mut self) {
+        self.head = Box::new(Node::new(
+            Record::new(vec![], vec![], false),
+            self.max_level,
+        ));
     }
 
     pub fn print(&self) {
