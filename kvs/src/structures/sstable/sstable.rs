@@ -1,7 +1,7 @@
 use crate::{BloomFilter, MerkleTree, Record};
 use std::{
     fs::{self, File, OpenOptions},
-    io::Write,
+    io::{Read, Seek, SeekFrom, Write},
 };
 
 pub struct SSTable {
@@ -116,6 +116,58 @@ impl SSTable {
         let merkle_tree: MerkleTree = MerkleTree::new(&keys);
 
         merkle_tree.to_file(&format!("{}/mt_1_{}.dat", self.path, self.next_file_index));
+    }
+
+    pub fn search_sstable(&mut self, level: u64, index: u64, key: Vec<u8>) -> bool {
+        let bloom_filter: BloomFilter =
+            BloomFilter::load_from_file(&format!("{}/bf_{}_{}.dat", self.path, level, index))
+                .unwrap();
+        if !bloom_filter.contains(&key) {
+            println!("nije prosao filter");
+            return false;
+        }
+
+        let (first_key, last_key): (Vec<u8>, Vec<u8>) = self.get_summary_range(level, index);
+
+        if &key < &first_key || &key > &last_key {
+            println!("nije u summary range");
+            return false;
+        }
+
+        return true;
+    }
+
+    fn get_summary_range(&self, level: u64, index: u64) -> (Vec<u8>, Vec<u8>) {
+        let mut buffer: Vec<u8> = vec![0; 8];
+
+        let mut summary_file: File = OpenOptions::new()
+            .read(true)
+            .open(&format!("{}/summary_{}_{}.dat", self.path, level, index))
+            .unwrap();
+
+        let mut first_key: Vec<u8> = Vec::new();
+        let mut last_key: Vec<u8> = Vec::new();
+
+        summary_file.read_exact(&mut buffer).unwrap();
+        let key_size = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+
+        summary_file.seek(SeekFrom::Start(8)).unwrap();
+        first_key.resize(key_size as usize, 0);
+        summary_file.read_exact(&mut first_key).unwrap();
+
+        summary_file
+            .seek(SeekFrom::Start(8 + first_key.len() as u64))
+            .unwrap();
+        summary_file.read_exact(&mut buffer).unwrap();
+        let key_size = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+
+        summary_file
+            .seek(SeekFrom::Start(8 + first_key.len() as u64 + 8))
+            .unwrap();
+        last_key.resize(key_size as usize, 0);
+        summary_file.read_exact(&mut last_key).unwrap();
+
+        (first_key, last_key)
     }
 
     fn get_next_index(&self, level: u64) -> u64 {
