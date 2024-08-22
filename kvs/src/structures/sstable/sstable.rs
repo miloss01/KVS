@@ -137,16 +137,10 @@ impl SSTable {
 
         let index_offset: u64 = self.get_index_offset_from_summary(level, index, &key);
 
-        println!("index offset {:?}", index_offset);
-
         let data_offset: u64 = self.get_data_offset_from_index(level, index, &key, index_offset);
-
-        println!("data offset {:?}", data_offset);
 
         let data: Vec<u8> = self.get_data(level, index, data_offset);
         let record: Record = Record::deserialize(&data);
-
-        println!("{:?}", record);
 
         Some(record)
     }
