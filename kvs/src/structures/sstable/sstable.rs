@@ -1,3 +1,5 @@
+use serde_json::map::Keys;
+
 use crate::{BloomFilter, MerkleTree, Record};
 use std::{
     fs::{self, File, OpenOptions},
@@ -85,6 +87,7 @@ impl SSTable {
                     .write_all(&record.key_size.to_le_bytes())
                     .unwrap();
                 summary_file.write_all(&record.key).unwrap();
+                println!("upisao {:?}", record.key.len() as u64);
                 summary_file.write_all(&index_offset.to_le_bytes()).unwrap();
             }
 
@@ -134,6 +137,10 @@ impl SSTable {
             return false;
         }
 
+        let index_offset: u64 = self.get_index_offset_from_summary(level, index, &key);
+
+        println!("index offset {:?}", index_offset);
+
         return true;
     }
 
@@ -168,6 +175,83 @@ impl SSTable {
         summary_file.read_exact(&mut last_key).unwrap();
 
         (first_key, last_key)
+    }
+
+    fn get_index_offset_from_summary(&self, level: u64, index: u64, key: &Vec<u8>) -> u64 {
+        let mut summary_file: File = OpenOptions::new()
+            .read(true)
+            .open(&format!("{}/summary_{}_{}.dat", self.path, level, index))
+            .unwrap();
+
+        let (first_key, last_key): (Vec<u8>, Vec<u8>) = self.get_summary_range(level, index);
+
+        let mut offset: u64 = 8 + first_key.len() as u64 + 8 + last_key.len() as u64;
+        let mut key_size: u64 = 0;
+        let mut buffer: Vec<u8> = vec![0; 8];
+        let mut current_key: Vec<u8> = Vec::new();
+        let mut next_key: Vec<u8> = Vec::new();
+        let mut current_key_offset: u64 = 0;
+        let mut next_key_offset: u64 = 0;
+        let mut index_offset: u64 = 0;
+
+        loop {
+            summary_file.seek(SeekFrom::Start(offset)).unwrap();
+            let mut bytes_read: usize = summary_file.read(&mut buffer).unwrap();
+            if bytes_read == 0 {
+                println!("iskocio na prvom");
+                break;
+            }
+
+            key_size = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+            current_key.resize(key_size as usize, 0);
+            summary_file.seek(SeekFrom::Start(offset + 8)).unwrap();
+            summary_file.read_exact(&mut current_key).unwrap();
+            summary_file
+                .seek(SeekFrom::Start(offset + 8 + current_key.len() as u64))
+                .unwrap();
+            summary_file.read(&mut buffer).unwrap();
+            current_key_offset = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+
+            summary_file
+                .seek(SeekFrom::Start(offset + 8 + current_key.len() as u64 + 8))
+                .unwrap();
+            bytes_read = summary_file.read(&mut buffer).unwrap();
+            if bytes_read == 0 {
+                println!("iskocio na drugom");
+                break;
+            }
+
+            let key_size: u64 = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+            next_key.resize(key_size as usize, 0);
+            summary_file
+                .seek(SeekFrom::Start(
+                    offset + 8 + current_key.len() as u64 + 8 + 8,
+                ))
+                .unwrap();
+            summary_file.read_exact(&mut next_key).unwrap();
+            summary_file
+                .seek(SeekFrom::Start(
+                    offset + 8 + current_key.len() as u64 + 8 + 8 + next_key.len() as u64,
+                ))
+                .unwrap();
+            summary_file.read(&mut buffer).unwrap();
+            next_key_offset = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+
+            println!("{:?} - {:?}", current_key, next_key);
+            if key == &current_key || key > &current_key && key < &next_key {
+                index_offset = current_key_offset;
+                break;
+            }
+
+            if key == &next_key {
+                index_offset = next_key_offset;
+                break;
+            }
+
+            offset += 8 + current_key.len() as u64 + 8;
+        }
+
+        index_offset
     }
 
     fn get_next_index(&self, level: u64) -> u64 {
