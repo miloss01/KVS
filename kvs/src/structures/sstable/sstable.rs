@@ -85,7 +85,6 @@ impl SSTable {
                     .write_all(&record.key_size.to_le_bytes())
                     .unwrap();
                 summary_file.write_all(&record.key).unwrap();
-                println!("upisao {:?}", record.key.len() as u64);
                 summary_file.write_all(&index_offset.to_le_bytes()).unwrap();
             }
 
@@ -143,6 +142,33 @@ impl SSTable {
         let record: Record = Record::deserialize(&data);
 
         Some(record)
+    }
+
+    pub fn search_all_sstables(&mut self, key: Vec<u8>) -> Option<Record> {
+        let mut level_index_pairs: Vec<(u64, u64)> = Vec::new();
+        let paths: fs::ReadDir = fs::read_dir(self.path.clone()).unwrap();
+
+        for path in paths {
+            let mut file_name: String = path.unwrap().file_name().into_string().unwrap();
+            if file_name.starts_with("data_") {
+                file_name = file_name.replace(".dat", "");
+                let tokens: Vec<&str> = file_name.split("_").collect();
+                let level: u64 = tokens[1].parse().unwrap();
+                let index: u64 = tokens[2].parse().unwrap();
+                level_index_pairs.push((level, index));
+            }
+        }
+
+        level_index_pairs.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| b.1.cmp(&a.1)));
+
+        for (level, index) in level_index_pairs {
+            if let Some(record) = self.search_sstable(level, index, key.clone()) {
+                println!("nasao u {:?}, {:?}", level, index);
+                return Some(record);
+            }
+        }
+
+        None
     }
 
     fn get_summary_range(&self, level: u64, index: u64) -> (Vec<u8>, Vec<u8>) {
