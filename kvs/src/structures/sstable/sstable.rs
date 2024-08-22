@@ -183,7 +183,7 @@ impl SSTable {
         let mut last_key: Vec<u8> = Vec::new();
 
         summary_file.read_exact(&mut buffer).unwrap();
-        let key_size = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+        let key_size: u64 = u64::from_le_bytes(buffer[..8].try_into().unwrap());
 
         summary_file.seek(SeekFrom::Start(8)).unwrap();
         first_key.resize(key_size as usize, 0);
@@ -193,7 +193,7 @@ impl SSTable {
             .seek(SeekFrom::Start(8 + first_key.len() as u64))
             .unwrap();
         summary_file.read_exact(&mut buffer).unwrap();
-        let key_size = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+        let key_size: u64 = u64::from_le_bytes(buffer[..8].try_into().unwrap());
 
         summary_file
             .seek(SeekFrom::Start(8 + first_key.len() as u64 + 8))
@@ -213,12 +213,12 @@ impl SSTable {
         let (first_key, last_key): (Vec<u8>, Vec<u8>) = self.get_summary_range(level, index);
 
         let mut offset: u64 = 8 + first_key.len() as u64 + 8 + last_key.len() as u64;
-        let mut key_size: u64 = 0;
+        let mut key_size: u64;
         let mut buffer: Vec<u8> = vec![0; 8];
         let mut current_key: Vec<u8> = Vec::new();
         let mut next_key: Vec<u8> = Vec::new();
-        let mut current_key_offset: u64 = 0;
-        let mut next_key_offset: u64 = 0;
+        let mut current_key_offset: u64;
+        let mut next_key_offset: u64;
         let mut index_offset: u64 = 0;
 
         loop {
