@@ -15,8 +15,8 @@ fn proba() {
 
     // sstable.make(&records);
 
-    for i in 1..=6 {
-        let res = sstable.search_sstable(1, 1, vec![i as u8]);
-        println!("{:?}", res);
-    }
+    // for i in 1..=6 {
+    let res = sstable.search_sstable(1, 1, vec![1]);
+    println!("{:?}", res);
+    // }
 }

@@ -1,5 +1,3 @@
-use serde_json::map::Keys;
-
 use crate::{BloomFilter, MerkleTree, Record};
 use std::{
     fs::{self, File, OpenOptions},
@@ -121,27 +119,36 @@ impl SSTable {
         merkle_tree.to_file(&format!("{}/mt_1_{}.dat", self.path, self.next_file_index));
     }
 
-    pub fn search_sstable(&mut self, level: u64, index: u64, key: Vec<u8>) -> bool {
+    pub fn search_sstable(&mut self, level: u64, index: u64, key: Vec<u8>) -> Option<Record> {
         let bloom_filter: BloomFilter =
             BloomFilter::load_from_file(&format!("{}/bf_{}_{}.dat", self.path, level, index))
                 .unwrap();
         if !bloom_filter.contains(&key) {
             println!("nije prosao filter");
-            return false;
+            return None;
         }
 
         let (first_key, last_key): (Vec<u8>, Vec<u8>) = self.get_summary_range(level, index);
 
         if &key < &first_key || &key > &last_key {
             println!("nije u summary range");
-            return false;
+            return None;
         }
 
         let index_offset: u64 = self.get_index_offset_from_summary(level, index, &key);
 
         println!("index offset {:?}", index_offset);
 
-        return true;
+        let data_offset: u64 = self.get_data_offset_from_index(level, index, &key, index_offset);
+
+        println!("data offset {:?}", data_offset);
+
+        let data: Vec<u8> = self.get_data(level, index, data_offset);
+        let record: Record = Record::deserialize(&data);
+
+        println!("{:?}", record);
+
+        Some(record)
     }
 
     fn get_summary_range(&self, level: u64, index: u64) -> (Vec<u8>, Vec<u8>) {
@@ -221,7 +228,7 @@ impl SSTable {
                 break;
             }
 
-            let key_size: u64 = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+            key_size = u64::from_le_bytes(buffer[..8].try_into().unwrap());
             next_key.resize(key_size as usize, 0);
             summary_file
                 .seek(SeekFrom::Start(
@@ -252,6 +259,84 @@ impl SSTable {
         }
 
         index_offset
+    }
+
+    fn get_data_offset_from_index(
+        &self,
+        level: u64,
+        index: u64,
+        key: &Vec<u8>,
+        initial_offset: u64,
+    ) -> u64 {
+        let mut index_file: File = OpenOptions::new()
+            .read(true)
+            .open(&format!("{}/index_{}_{}.dat", self.path, level, index))
+            .unwrap();
+
+        let mut buffer: Vec<u8> = vec![0; 8];
+        let mut data_offset: u64 = 0;
+        let mut current_key: Vec<u8> = Vec::new();
+        let mut offset: u64 = initial_offset;
+
+        loop {
+            index_file.seek(SeekFrom::Start(offset)).unwrap();
+
+            let bytes_read: usize = index_file.read(&mut buffer).unwrap();
+
+            if bytes_read == 0 {
+                println!("zavrsio index");
+                break;
+            }
+
+            let key_size: u64 = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+            current_key.resize(key_size as usize, 0);
+            index_file.seek(SeekFrom::Start(offset + 8)).unwrap();
+            index_file.read_exact(&mut current_key).unwrap();
+
+            if key == &current_key {
+                index_file
+                    .seek(SeekFrom::Start(offset + 8 + current_key.len() as u64))
+                    .unwrap();
+                index_file.read(&mut buffer).unwrap();
+                data_offset = u64::from_le_bytes(buffer[..8].try_into().unwrap());
+
+                return data_offset;
+            }
+
+            offset += 8 + current_key.len() as u64 + 8;
+        }
+
+        data_offset
+    }
+
+    fn get_data(&self, level: u64, index: u64, offset: u64) -> Vec<u8> {
+        let mut data_file: File = OpenOptions::new()
+            .read(true)
+            .open(&format!("{}/data_{}_{}.dat", self.path, level, index))
+            .unwrap();
+
+        data_file.seek(SeekFrom::Start(offset)).unwrap();
+
+        let mut buffer: Vec<u8> = vec![0; 33];
+        let mut key: Vec<u8> = Vec::new();
+        let mut value: Vec<u8> = Vec::new();
+
+        data_file.read_exact(&mut buffer).unwrap();
+
+        let key_size: u64 = u64::from_le_bytes(buffer[17..25].try_into().unwrap());
+        let value_size: u64 = u64::from_le_bytes(buffer[25..33].try_into().unwrap());
+
+        key.resize(key_size as usize, 0);
+        value.resize(value_size as usize, 0);
+
+        data_file.seek(SeekFrom::Start(offset + 33)).unwrap();
+        data_file.read_exact(&mut key).unwrap();
+        data_file
+            .seek(SeekFrom::Start(offset + 33 + key_size))
+            .unwrap();
+        data_file.read_exact(&mut value).unwrap();
+
+        [buffer, key, value].concat()
     }
 
     fn get_next_index(&self, level: u64) -> u64 {
