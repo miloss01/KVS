@@ -61,6 +61,13 @@ pub(crate) mod structures {
         #[cfg(test)]
         mod test;
     }
+
+    pub(crate) mod kvs {
+        pub(crate) mod kvs;
+
+        #[cfg(test)]
+        mod test;
+    }
 }
 
 pub(crate) mod config {
@@ -71,6 +78,7 @@ pub(crate) mod config {
 }
 
 pub use structures::bloom_filter::bloom_filter::BloomFilter;
+pub use structures::kvs::kvs::KVS;
 pub use structures::lru_cache::lru_cache::LRUCache;
 pub use structures::memtable::memtable::Memtable;
 pub use structures::merkle_tree::merkle_tree::{MerkleTree, PathItem};
