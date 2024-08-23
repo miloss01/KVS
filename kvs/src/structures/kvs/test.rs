@@ -29,8 +29,8 @@ fn proba2() {
     println!("{:?}", res);
     kvs.put(vec![102], vec![102]);
     let res = kvs.get(vec![102]);
-    println!("{:?}", kvs.wal.current_records);
-    println!("{:?}", kvs.memtable.data.get_all_records());
+    // println!("{:?}", kvs.wal.current_records);
+    // println!("{:?}", kvs.memtable.data.get_all_records());
 }
 
 #[test]
