@@ -1,6 +1,7 @@
-use crate::{structures::memtable, LRUCache, Memtable, Record, SSTable, TokenBucket, Wal};
+use crate::{config, Config, LRUCache, Memtable, Record, SSTable, TokenBucket, Wal};
 
 pub struct KVS {
+    config: Config,
     token_bucket: TokenBucket,
     cache: LRUCache,
     memtable: Memtable,
@@ -8,17 +9,29 @@ pub struct KVS {
 }
 
 impl KVS {
-    pub fn new() -> Self {
-        let wal: Wal = Wal::new("data/wal", 5, 10);
-        let mut memtable: Memtable = Memtable::new(10, 5, 0.5);
+    pub fn new(config: &Config) -> Self {
+        let wal: Wal = Wal::new(
+            &config.wal_path,
+            config.wal_max_segments,
+            config.wal_max_elements,
+        );
+        let mut memtable: Memtable = Memtable::new(
+            config.memtable_max_elements,
+            config.skiplist_max_level as usize,
+            config.skiplist_probability,
+        );
 
         for record in &wal.current_records {
             memtable.insert(record.clone());
         }
 
         KVS {
-            token_bucket: TokenBucket::new(100, 3),
-            cache: LRUCache::new(5),
+            config: config.clone(),
+            token_bucket: TokenBucket::new(
+                config.token_bucket_max_elements,
+                config.token_bucket_interval_in_secs,
+            ),
+            cache: LRUCache::new(config.cache_max_elements as u32),
             memtable,
             wal,
         }
@@ -42,7 +55,8 @@ impl KVS {
             return Some(Record::deserialize(record));
         }
 
-        let mut sstable: SSTable = SSTable::new("data", 2);
+        let mut sstable: SSTable =
+            SSTable::new(&self.config.data_path, self.config.nth_element_in_summary);
 
         if let Some(record) = sstable.search_all_sstables(key.clone()) {
             println!("u sstable");
@@ -69,7 +83,8 @@ impl KVS {
         if self.memtable.is_full() {
             let flushed: Vec<Record> = self.memtable.flush();
 
-            let mut sstable: SSTable = SSTable::new("data", 3);
+            let mut sstable: SSTable =
+                SSTable::new(&self.config.data_path, self.config.nth_element_in_summary);
             sstable.make(&flushed);
         }
 
@@ -99,7 +114,8 @@ impl KVS {
         if self.memtable.is_full() {
             let flushed: Vec<Record> = self.memtable.flush();
 
-            let mut sstable: SSTable = SSTable::new("data", 3);
+            let mut sstable: SSTable =
+                SSTable::new(&self.config.data_path, self.config.nth_element_in_summary);
             sstable.make(&flushed);
         }
 
