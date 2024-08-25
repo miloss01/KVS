@@ -1,4 +1,4 @@
-use crate::{config, Config, LRUCache, Memtable, Record, SSTable, TokenBucket, Wal};
+use crate::{Config, LRUCache, Memtable, Record, SSTable, TokenBucket, Wal};
 
 pub struct KVS {
     config: Config,
@@ -55,8 +55,11 @@ impl KVS {
             return Some(Record::deserialize(record));
         }
 
-        let mut sstable: SSTable =
-            SSTable::new(&self.config.data_path, self.config.nth_element_in_summary);
+        let mut sstable: SSTable = SSTable::new(
+            &self.config.data_path,
+            self.config.nth_element_in_summary,
+            self.config.lsm_max_elements_per_level,
+        );
 
         if let Some(record) = sstable.search_all_sstables(key.clone()) {
             println!("u sstable");
@@ -83,12 +86,25 @@ impl KVS {
         if self.memtable.is_full() {
             let flushed: Vec<Record> = self.memtable.flush();
 
-            let mut sstable: SSTable =
-                SSTable::new(&self.config.data_path, self.config.nth_element_in_summary);
+            let mut sstable: SSTable = SSTable::new(
+                &self.config.data_path,
+                self.config.nth_element_in_summary,
+                self.config.lsm_max_elements_per_level,
+            );
             sstable.make(&flushed);
         }
 
         self.cache.put(key.clone(), record.serialize());
+    }
+
+    pub fn compact(&self) {
+        let mut sstable: SSTable = SSTable::new(
+            &self.config.data_path,
+            self.config.nth_element_in_summary,
+            self.config.lsm_max_elements_per_level,
+        );
+
+        sstable.compact();
     }
 
     pub fn delete(&mut self, key: Vec<u8>) -> bool {
@@ -114,8 +130,11 @@ impl KVS {
         if self.memtable.is_full() {
             let flushed: Vec<Record> = self.memtable.flush();
 
-            let mut sstable: SSTable =
-                SSTable::new(&self.config.data_path, self.config.nth_element_in_summary);
+            let mut sstable: SSTable = SSTable::new(
+                &self.config.data_path,
+                self.config.nth_element_in_summary,
+                self.config.lsm_max_elements_per_level,
+            );
             sstable.make(&flushed);
         }
 
