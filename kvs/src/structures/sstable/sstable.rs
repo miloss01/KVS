@@ -161,7 +161,7 @@ impl SSTable {
             }
         }
 
-        level_index_pairs.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| b.1.cmp(&a.1)));
+        level_index_pairs.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.cmp(&a.1)));
 
         for (level, index) in level_index_pairs {
             if let Some(record) = self.search_sstable(level, index, key.clone()) {
@@ -505,18 +505,15 @@ impl SSTable {
             remove_file(format!("{}/mt_{}_{}.dat", self.path, level, file_index)).unwrap();
         }
 
+        let new_index: u64 = self.get_next_index(level + 1);
+
         rename(
             format!("{}/temp.dat", self.path),
-            format!(
-                "{}/data_{}_{}.dat",
-                self.path,
-                level + 1,
-                self.get_next_index(level + 1)
-            ),
+            format!("{}/data_{}_{}.dat", self.path, level + 1, new_index),
         )
         .unwrap();
 
-        self.create_sstable_from_data_file(level + 1, 1);
+        self.create_sstable_from_data_file(level + 1, new_index);
     }
 
     fn get_next_record_serialized(&self, file: &mut File, offset: u64) -> Vec<u8> {
