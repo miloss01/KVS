@@ -1,6 +1,6 @@
 use crate::{BloomFilter, MerkleTree, Record};
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, remove_file, rename, File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
 };
 
@@ -8,14 +8,16 @@ pub struct SSTable {
     path: String,
     next_file_index: u64,
     nth_element_in_summary: u64,
+    lsm_max_elements_per_level: u64,
 }
 
 impl SSTable {
-    pub fn new(path: &str, nth_element_in_summary: u64) -> Self {
+    pub fn new(path: &str, nth_element_in_summary: u64, lsm_max_elements_per_level: u64) -> Self {
         SSTable {
             path: path.to_string(),
             next_file_index: 1,
             nth_element_in_summary,
+            lsm_max_elements_per_level,
         }
     }
 
@@ -378,5 +380,122 @@ impl SSTable {
         }
 
         index + 1
+    }
+
+    pub fn should_compact(&self, level: u64) -> bool {
+        self.get_next_index(level) - 1 == self.lsm_max_elements_per_level
+    }
+
+    pub fn compact(&mut self, level: u64) {
+        File::create(&format!("{}/temp.dat", self.path)).unwrap();
+
+        for file_index in 1..=self.lsm_max_elements_per_level {
+            let mut temp_offset: u64 = 0;
+            let mut curr_file_offset: u64 = 0;
+
+            let mut new_file: File = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&format!("{}/new_file.dat", self.path))
+                .unwrap();
+
+            let mut temp_file: File = OpenOptions::new()
+                .read(true)
+                .open(&format!("{}/temp.dat", self.path))
+                .unwrap();
+
+            let mut curr_file: File = OpenOptions::new()
+                .read(true)
+                .open(&format!("{}/data_{}_{}.dat", self.path, level, file_index))
+                .unwrap();
+
+            loop {
+                let temp_record_serialized: Vec<u8> =
+                    self.get_next_record_serialized(&mut temp_file, temp_offset);
+                let curr_record_serialized: Vec<u8> =
+                    self.get_next_record_serialized(&mut curr_file, curr_file_offset);
+
+                if temp_record_serialized.len() == 0 && curr_record_serialized.len() == 0 {
+                    break;
+                }
+
+                if temp_record_serialized.len() == 0 {
+                    new_file.write_all(&curr_record_serialized).unwrap();
+                    curr_file_offset += curr_record_serialized.len() as u64;
+                } else if curr_record_serialized.len() == 0 {
+                    new_file.write_all(&temp_record_serialized).unwrap();
+                    temp_offset += temp_record_serialized.len() as u64;
+                } else {
+                    let temp_record: Record = Record::deserialize(&temp_record_serialized);
+                    let curr_record: Record = Record::deserialize(&curr_record_serialized);
+
+                    if &temp_record.key < &curr_record.key {
+                        new_file.write_all(&temp_record_serialized).unwrap();
+                        temp_offset += temp_record_serialized.len() as u64;
+                    } else if &curr_record.key < &temp_record.key {
+                        new_file.write_all(&curr_record_serialized).unwrap();
+                        curr_file_offset += curr_record_serialized.len() as u64;
+                    } else {
+                        if temp_record.timestamp > curr_record.timestamp {
+                            if !temp_record.tombstone {
+                                new_file.write_all(&temp_record_serialized).unwrap();
+                            }
+                        } else {
+                            if !curr_record.tombstone {
+                                new_file.write_all(&curr_record_serialized).unwrap();
+                            }
+                        }
+
+                        temp_offset += temp_record_serialized.len() as u64;
+                        curr_file_offset += curr_record_serialized.len() as u64;
+                    }
+                }
+            }
+
+            remove_file(format!("{}/temp.dat", self.path)).unwrap();
+            rename(
+                format!("{}/new_file.dat", self.path),
+                format!("{}/temp.dat", self.path),
+            )
+            .unwrap();
+            remove_file(format!("{}/data_{}_{}.dat", self.path, level, file_index)).unwrap();
+            remove_file(format!("{}/index_{}_{}.dat", self.path, level, file_index)).unwrap();
+            remove_file(format!(
+                "{}/summary_{}_{}.dat",
+                self.path, level, file_index
+            ))
+            .unwrap();
+            remove_file(format!("{}/bf_{}_{}.dat", self.path, level, file_index)).unwrap();
+            remove_file(format!("{}/mt_{}_{}.dat", self.path, level, file_index)).unwrap();
+        }
+
+        rename(
+            format!("{}/temp.dat", self.path),
+            format!("{}/data_1_1.dat", self.path),
+        )
+        .unwrap();
+    }
+
+    fn get_next_record_serialized(&self, file: &mut File, offset: u64) -> Vec<u8> {
+        let mut buffer: Vec<u8> = vec![0; 33];
+        file.seek(SeekFrom::Start(offset)).unwrap();
+
+        let bytes_read: usize = file.read(&mut buffer).unwrap();
+
+        if bytes_read == 0 {
+            return Vec::new();
+        }
+
+        let key_size: u64 = u64::from_le_bytes(buffer[17..25].try_into().unwrap());
+        let value_size: u64 = u64::from_le_bytes(buffer[25..33].try_into().unwrap());
+        let mut key: Vec<u8> = vec![0; key_size as usize];
+        let mut value: Vec<u8> = vec![0; value_size as usize];
+
+        file.seek(SeekFrom::Start(offset + 33)).unwrap();
+        file.read_exact(&mut key).unwrap();
+        file.seek(SeekFrom::Start(offset + 33 + key_size)).unwrap();
+        file.read_exact(&mut value).unwrap();
+
+        [buffer, key, value].concat()
     }
 }
