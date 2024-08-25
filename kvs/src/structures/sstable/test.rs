@@ -2,7 +2,7 @@ use crate::{Record, SSTable};
 
 #[test]
 fn proba() {
-    let mut sstable: SSTable = SSTable::new("data", 4);
+    let mut sstable: SSTable = SSTable::new("data", 4, 5);
 
     let mut records: Vec<Record> = Vec::new();
 
@@ -28,7 +28,7 @@ fn proba() {
 
 #[test]
 fn proba2() {
-    let mut sstable: SSTable = SSTable::new("data", 2);
+    let mut sstable: SSTable = SSTable::new("data", 2, 5);
     // let mut records: Vec<Record> = Vec::new();
     // for i in 1..=5 {
     //     let key: Vec<u8> = vec![i as u8];
@@ -59,7 +59,7 @@ fn proba2() {
 
 #[test]
 fn proba3() {
-    let mut sstable: SSTable = SSTable::new("data", 2);
+    let mut sstable: SSTable = SSTable::new("data", 2, 5);
 
     // let mut records: Vec<Record> = Vec::new();
     // for i in 1..=5 {
@@ -98,4 +98,11 @@ fn proba3() {
     println!("res {:?}", res);
     assert_eq!(res.clone().unwrap().tombstone, true);
     assert_eq!(res.clone().unwrap().value, vec![33]);
+}
+
+#[test]
+fn prrr() {
+    let mut sstable: SSTable = SSTable::new("data", 2, 3);
+    sstable.compact();
+    // sstable.create_sstable_from_data_file(1, 1);
 }
