@@ -37,18 +37,6 @@ impl Wal {
     }
 
     pub fn add_record(&mut self, record: &Record) {
-        if self.current_element_count >= self.max_elements_per_segment {
-            self.current_segment += 1;
-            self.current_element_count = 0;
-
-            if self.current_segment > self.max_segments {
-                self.cleanup_segments();
-                self.current_segment = 1;
-            }
-
-            self.current_records.clear();
-        }
-
         let segment_filename: String =
             format!("{}/segment_{}.wal", self.path, self.current_segment);
         let mut file: File = OpenOptions::new()
@@ -62,6 +50,22 @@ impl Wal {
 
         self.current_element_count += 1;
         self.current_records.push(record.clone());
+
+        if self.current_element_count >= self.max_elements_per_segment {
+            self.current_segment += 1;
+            self.current_element_count = 0;
+
+            if self.current_segment > self.max_segments {
+                self.cleanup_segments();
+                self.current_segment = 1;
+            } else {
+                let segment_filename: String =
+                    format!("{}/segment_{}.wal", self.path, self.current_segment);
+                File::create(&segment_filename).unwrap();
+            }
+
+            self.current_records.clear();
+        }
     }
 
     fn cleanup_segments(&self) {
