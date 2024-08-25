@@ -103,5 +103,6 @@ fn proba3() {
 #[test]
 fn prrr() {
     let mut sstable: SSTable = SSTable::new("data", 2, 3);
-    sstable.compact(1);
+    sstable.compact();
+    // sstable.create_sstable_from_data_file(1, 1);
 }
